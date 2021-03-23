@@ -4,49 +4,108 @@
    Text,
    StyleSheet,
    TextInput,
-   TouchableOpacity
+   TouchableOpacity,
+   Keyboard,
+   TouchableWithoutFeedback,   
  } from 'react-native';
+
+ interface UrlProps {
+   shortLink: string
+   [key: string]: string | number
+ }
+
+ interface ResponseData {
+   url: UrlProps
+ }
+
+ import Clipboard from '@react-native-community/clipboard'
  
  const App = () => {
-   const [url, setUrl] = useState('')
+   const [urlToBeShorted, setUrl] = useState('')
    const [name, setName] = useState('')
+   const [shortedUrl, setShortedUrl] = useState('')
+   const [buttonText, setButtonText] = useState('Encurtar')
+   const [disable, setDisable] = useState(false)
+
+   const handleShortUrl = async () => {
+     setShortedUrl('')
+     Keyboard.dismiss()
+     if(urlToBeShorted.includes('https://') || urlToBeShorted.includes('http://')){
+       setButtonText('Gerando Url...')
+       setDisable(true)
+
+       const response: Response = await fetch(`https://cutt.ly/api/api.php?key=f32ef845e270839a0d90e468c14b40216a615&short=${urlToBeShorted}&name=${name}`)
+       const {url}: ResponseData = await response.json()
+
+       setButtonText('Encurtar')
+       setDisable(false)
+
+       if(url.status === 3){
+         alert('This name is already used')
+         return
+       }
+
+       if(url.status === 2){
+         alert('Invalid URL')
+         return
+       }
+
+       setName('')
+       setUrl('')
+       setShortedUrl(url.shortLink)
+       return
+     }else {
+      alert('Url needs to contain "https://" or "http://')
+      return
+     }
+   }
+
+   const copyUrl = () => {
+     Clipboard.setString(shortedUrl)
+     alert('Url copiada com sucesso!')
+   }
  
    return (
-    <View style={styles.container}>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
 
-      <Text style={styles.title}>
-        Short
-        <Text style={{color: '#1056f7'}}>
-          Link
+        <Text style={styles.title}>
+          Short
+          <Text style={{color: '#1056f7'}}>
+            Link
+          </Text>
         </Text>
-      </Text>
 
-      <TextInput
-        style={styles.input}
-        onChangeText={text => setUrl(text)}
-        value={url}
-        placeholder='Digite a url'
-        placeholderTextColor='#21243d'
-      />
+        <TextInput
+          style={styles.input}
+          onChangeText={text => setUrl(text)}
+          value={urlToBeShorted}
+          placeholder='Digite a url'
+          placeholderTextColor='#21243d'
+        />
 
-      <TextInput
-        style={styles.input}
-        onChangeText={text => setName(text)}
-        value={name}
-        placeholder='Nome Personalizado'
-        placeholderTextColor='#21243d'
-      />
+        <TextInput
+          style={styles.input}
+          onChangeText={text => setName(text)}
+          value={name}
+          placeholder='Nome Personalizado'
+          placeholderTextColor='#21243d'
+        />
 
-      <TouchableOpacity 
-        onPress={()=>{}}
-        style={styles.button}
-      >
-        <Text style={{color: '#fff', fontSize: 20,}}>Encurtar</Text>
-      </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={handleShortUrl}
+          style={styles.button}
+          
+        >
+          <Text style={{color: '#fff', fontSize: 20,}}>{buttonText}</Text>
+        </TouchableOpacity>
 
-      <Text style={styles.generatedUrl}>https://cuttly.com/NomeUrlPersonalizada</Text>
+        <TouchableWithoutFeedback onPress={shortedUrl ? copyUrl : () => {}} disabled={disable}>
+          <Text style={styles.generatedUrl}>{shortedUrl}</Text>
+        </TouchableWithoutFeedback>
 
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
    );
  };
 
